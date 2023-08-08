@@ -19,11 +19,14 @@
 from zeep import Client, Settings, xsd
 from zeep.plugins import HistoryPlugin
 
+from dotenv import load_dotenv
 import time
 import datetime
 import os
 
-LDB_TOKEN = ''
+load_dotenv()
+
+LDB_TOKEN = os.getenv("RAIL_TOKEN")
 WSDL = 'http://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01'
 
 if LDB_TOKEN == '':
