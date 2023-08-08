@@ -19,6 +19,10 @@
 from zeep import Client, Settings, xsd
 from zeep.plugins import HistoryPlugin
 
+import time
+import datetime
+import os
+
 LDB_TOKEN = ''
 WSDL = 'http://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01'
 
@@ -41,15 +45,48 @@ header = xsd.Element(
 )
 header_value = header(TokenValue=LDB_TOKEN)
 
-res = client.service.GetDepartureBoard(numRows=10, crs='EUS', _soapheaders=[header_value])
+def displayStationBoard(res, destCRS):
+    print(f"Trains from {res.locationName} to {res.filterLocationName}" )
+    print("===============================================================================")
 
-print("Trains at " + res.locationName)
-print("===============================================================================")
+    services = res.trainServices.service
 
-services = res.trainServices.service
+    for t in services:
+        line = f"{t.std} to {t.destination.location[0].locationName} - {t.etd}"
+        if t.platform:
+            line += f" - pl.{t.platform}"
+            callingPoints = t.subsequentCallingPoints.callingPointList[0].callingPoint
+            for callP in callingPoints:
+               if callP.crs == destCRS:
+                   line += f" - dest {callP.st} ETA {callP.et}"
+        if t.cancelReason:
+            line += f" - {t.cancelReason}"
+        print(line)
+    print("===============================================================================")
 
-i = 0
-while i < len(services):
-    t = services[i]
-    print(t.std + " to " + t.destination.location[0].locationName + " - " + t.etd)
-    i += 1
+def in_between(now, start, end):
+    if start <= end:
+        return start <= now < end
+    else:
+        return start <= now or now < end
+
+while True:
+    os.system('cls||clear')
+
+    res = client.service.GetDepBoardWithDetails(numRows=10, crs='SWT', filterCrs='MAN', timeWindow=119, _soapheaders=[header_value])
+    displayStationBoard(res,'MAN')
+
+    res = client.service.GetDepBoardWithDetails(numRows=10, crs='MAN', filterCrs='SWT', timeWindow=119,   _soapheaders=[header_value])
+    displayStationBoard(res,'SWT')
+    line = f"Last updated: {res.generatedAt}"
+    if in_between(datetime.datetime.now().time(),datetime.time(7),datetime.time(9)):
+       line += " - Next update in 30s"
+       sleepTime = 30
+    elif in_between(datetime.datetime.now().time(),datetime.time(16),datetime.time(19)):
+       line += " - Next update in 30s"
+       sleepTime = 30
+    else:
+       line += " - Next update in 5m"
+       sleepTime = 60*5
+    print(line)
+    time.sleep(sleepTime)
