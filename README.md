@@ -11,7 +11,7 @@ signing up at the following URL:
 
 * https://realtime.nationalrail.co.uk/OpenLDBWSRegistration/
 
-Edit `getDepartureBoardExample.py` and set `LDB_TOKEN` to your own token.
+Create a `.env` and set `RAIL_TOKEN` to your own token. e.g. `RAIL_TOKEN=zxc1zxc2zc3zc4`
 
 Install dependencies using `pip`:
 
