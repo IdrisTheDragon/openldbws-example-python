@@ -29,6 +29,9 @@ load_dotenv()
 LDB_TOKEN = os.getenv("RAIL_TOKEN")
 WSDL = 'http://lite.realtime.nationalrail.co.uk/OpenLDBWS/wsdl.aspx?ver=2021-11-01'
 
+START_ST = 'SWT'
+END_ST = 'MAN'
+
 if LDB_TOKEN == '':
     raise Exception("Please configure your OpenLDBWS token in getDepartureBoardExample!")
 
@@ -52,18 +55,23 @@ def displayStationBoard(res, destCRS):
     print(f"Trains from {res.locationName} to {res.filterLocationName}" )
     print("===============================================================================")
 
+    if not res.trainServices:
+        print("No trains in the next 120 minutes at this time")
+        print("===============================================================================")
+        return
     services = res.trainServices.service
 
     for t in services:
         line = f"{t.std} to {t.destination.location[0].locationName} - {t.etd}"
         if t.platform:
             line += f" - pl.{t.platform}"
+        if t.subsequentCallingPoints:
             callingPoints = t.subsequentCallingPoints.callingPointList[0].callingPoint
             for callP in callingPoints:
-               if callP.crs == destCRS:
+                if callP.crs == destCRS:
                    line += f" - dest {callP.st} ETA {callP.et}"
         if t.cancelReason:
-            line += f" - {t.cancelReason}"
+            line += f"\n{t.cancelReason}"
         print(line)
     print("===============================================================================")
 
@@ -76,11 +84,11 @@ def in_between(now, start, end):
 while True:
     os.system('cls||clear')
 
-    res = client.service.GetDepBoardWithDetails(numRows=10, crs='SWT', filterCrs='MAN', timeWindow=119, _soapheaders=[header_value])
-    displayStationBoard(res,'MAN')
+    res = client.service.GetDepBoardWithDetails(numRows=10, crs=START_ST, filterCrs=END_ST, timeOffset=0, timeWindow=119, _soapheaders=[header_value])
+    displayStationBoard(res,END_ST)
 
-    res = client.service.GetDepBoardWithDetails(numRows=10, crs='MAN', filterCrs='SWT', timeWindow=119,   _soapheaders=[header_value])
-    displayStationBoard(res,'SWT')
+    res = client.service.GetDepBoardWithDetails(numRows=10, crs=END_ST, filterCrs=START_ST, timeOffset=0, timeWindow=119,   _soapheaders=[header_value])
+    displayStationBoard(res,START_ST)
     line = f"Last updated: {res.generatedAt}"
     if in_between(datetime.datetime.now().time(),datetime.time(7),datetime.time(9)):
        line += " - Next update in 30s"
